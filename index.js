@@ -13,8 +13,9 @@ const ConnectionString = require('azure-iot-device').ConnectionString;
 const Message = require('azure-iot-device').Message;
 const Protocol = require('azure-iot-device-mqtt').Mqtt;
 
-const SERVER_PORT = 5661;
-
+const DEFAULT_SERVER_PORT = 5661;
+const DEFAULT_HOST_NAME = "localhost";
+const DEFAULT_PASSWORD = "";
 
 var messageId = 0;
 var deviceId;
@@ -31,19 +32,32 @@ var temperature;
 var humidityValue;
 var temperatureValue;
 
-function connectToPhidgetsServer(hostname, password) {
-	console.log('connecting to:' + hostname);
-	phidgetsConnection = new phidget22.Connection(SERVER_PORT, hostname, { name: 'Server Connection', passwd: password });
+function connectToPhidgetsServer(hostname, port, password) {
+	console.log('Connecting to Phidgets Server at:' + hostname);
+	if(hostname == undefined || hostname == null) {
+		hostname = DEFAULT_HOST_NAME;
+	}
+
+	if(password == undefined || password == null) {
+		password = DEFAULT_PASSWORD;
+	}
+
+	if(port == undefined || port == null) {
+		port = DEFAULT_SERVER_PORT;
+	}
+	
+	phidgetsConnection = new phidget22.Connection(port, hostname, { name: 'Server Connection', passwd: password });
 	phidgetsConnection.connect()
 		.then(initializePhidgets)
 		.catch(function (err) {
-			console.error('Unable To Connect To Phidgets Servder:', err.message);
+			console.error('Unable To Connect To Phidgets Server:', err.message);
 			process.exit(1);
 		});
 }
 
 function initializePhidgets() {
-	console.log('connected to server');
+	console.log('Connected to Phidgets server...');
+
 	lcd = new phidget22.LCD();
 
 	humidity = new phidget22.VoltageRatioInput();
@@ -101,6 +115,7 @@ function initializePhidgets() {
 
 	}
 	catch (err) {
+		config = {};
 		console.error('Failed to load config.json: ' + err.message);
 	}
 
@@ -297,7 +312,7 @@ function updateInputStatus(inputs) {
 
 		client.on('message', onReceiveMessage);
 
-		connectToPhidgetsServer("localhost","");
+		connectToPhidgetsServer(config.phidgetsHostName,config.phidgetsPort,config.phidgetsPassword);
 
 		setInterval(() => {
 			var payload = {};
