@@ -33,7 +33,9 @@ var humidityValue;
 var temperatureValue;
 
 function connectToPhidgetsServer(hostname, port, password) {
+
 	console.log('Connecting to Phidgets Server at:' + hostname);
+
 	if(hostname == undefined || hostname == null) {
 		hostname = DEFAULT_HOST_NAME;
 	}
@@ -77,9 +79,12 @@ function initializePhidgets() {
 		}
 
 		lcd.setBacklight(1);
-		lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 0, "Humidity : ???");
-		lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 1, "Temperature  : ???");
-		lcd.flush();
+
+		if(config.displaySensorValues) {
+			lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 0, "Humidity : ???");
+			lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 1, "Temperature  : ???");
+			lcd.flush();
+		}
 	};
 
 	humidity.onAttach = function (ch) {
@@ -92,8 +97,11 @@ function initializePhidgets() {
 
 	humidity.onSensorChange = function (value, unit) {
 		humidityValue = value;
-		lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 0, "Humidity : " + value);
-		lcd.flush();
+		
+		if(config.displaySensorValues) {
+			lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 0, "Humidity : " + value);
+			lcd.flush();
+		}
 	};
 
 	temperature.onAttach = function (ch) {
@@ -106,18 +114,12 @@ function initializePhidgets() {
 
 	temperature.onSensorChange = function (value, unit) {
 		temperatureValue = value;
-		lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 1, "Temperature  : " + value);
-		lcd.flush();
+
+		if(config.displaySensorValues) {
+			lcd.writeText(phidget22.LCDFont.DIMENSIONS_5X8, 0, 1, "Temperature  : " + value);
+			lcd.flush();
+		}
 	};
-
-	try {
-		config = require('./config.json');
-
-	}
-	catch (err) {
-		config = {};
-		console.error('Failed to load config.json: ' + err.message);
-	}
 
 	lcd.open().then(function (lcd) {
 		console.log('channel open');
@@ -311,6 +313,15 @@ function updateInputStatus(inputs) {
 		client.onDeviceMethod('WriteLCD', onWriteLCD);
 
 		client.on('message', onReceiveMessage);
+
+		try {
+			config = require('./config.json');
+		}
+		catch (err) {
+			config = {};
+			console.error('Failed to load config.json: ' + err.message);
+		}
+	
 
 		connectToPhidgetsServer(config.phidgetsHostName,config.phidgetsPort,config.phidgetsPassword);
 

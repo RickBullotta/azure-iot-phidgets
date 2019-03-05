@@ -4,11 +4,7 @@ var SERVER_PORT = 5661;
 
 function main() {
 
-	if (process.argv.length != 3) {
-		console.log('usage: node LCD.js <server address>');
-		process.exit(1);
-	}
-	var hostname = process.argv[2];
+	var hostname = 'localhost';
 
 	console.log('connecting to:' + hostname);
 	var conn = new phidget22.Connection(SERVER_PORT, hostname, { name: 'Server Connection', passwd: '' });
