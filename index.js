@@ -29,8 +29,20 @@ var phidgetsConnection;
 var lcd;
 var humidity;
 var temperature;
+var motion;
+var light;
+
 var humidityValue;
 var temperatureValue;
+var motionState = false;
+var previousMotionState = false;
+
+var lightValue;
+
+var motionStates = [0,0,0,0,0,0,0,0,0,0];
+var motionIndex = 0;
+
+var lastMotionNotification = new Date(1970,0,1);
 
 function connectToPhidgetsServer(hostname, port, password) {
 
@@ -67,6 +79,12 @@ function initializePhidgets() {
 
 	temperature = new phidget22.VoltageRatioInput();
 	temperature.setChannel(1);
+
+	light = new phidget22.VoltageInput();
+	light.setChannel(2);
+
+	motion = new phidget22.VoltageRatioInput();
+	motion.setChannel(3);
 
 	lcd.onDetach = function (lcd) {
 		console.log(lcd + ' detached');
@@ -121,6 +139,78 @@ function initializePhidgets() {
 		}
 	};
 
+	light.onAttach = function (ch) {
+		console.log(ch + ' attached');
+	};
+
+	light.onDetach = function (ch) {
+		console.log(ch + ' detached');
+	};
+
+	light.onVoltageChange = function (value, unit) {
+		lightValue = 200 * value;
+	};
+
+	motion.onAttach = function (ch) {
+		console.log(ch + ' attached');
+	};
+
+	motion.onDetach = function (ch) {
+		console.log(ch + ' detached');
+	};
+
+	motion.onVoltageRatioChange = function (value, unit) {
+		var adjustedValue = 0.500 - value;
+		var currentState;
+
+		if(adjustedValue > 0.06 || adjustedValue < -0.06) {
+			currentState = 1;
+		}
+		else {
+			currentState = 0;
+		}
+
+		motionStates[motionIndex] = currentState;
+
+		motionIndex = (motionIndex + 1) % 10;
+
+		var i;
+
+		var hits = 0;
+
+		for(i=0;i<10;i++) {
+			hits += motionStates[i];
+		}
+	
+		motionState = (hits > 5);
+
+		if(motionState != previousMotionState) {
+			previousMotionState = motionState;
+
+			if(motionState) {
+				console.log("Motion Detected");
+				
+				var now = new Date();
+
+				var timeSinceLastNotification = now.getTime() - lastMotionNotification.getTime();
+
+				console.log("Time Since Last Notification was " + timeSinceLastNotification);
+
+				if(timeSinceLastNotification >= config.motionNotificationDeadband) {
+					console.log("Sending notification...");
+
+					lastMotionNotification = now;
+
+					var payload = {};
+
+					payload["motion"] = "Motion Detected";
+		
+					updateInputStatus(payload);
+				}
+			}
+		}
+	};
+
 	lcd.open().then(function (lcd) {
 		console.log('channel open');
 	}).catch(function (err) {
@@ -140,6 +230,19 @@ function initializePhidgets() {
 	}).catch(function (err) {
 		console.log('failed to open the channel:' + err);
 	});
+
+	light.open().then(function (ch) {
+		console.log('channel open');
+	}).catch(function (err) {
+		console.log('failed to open the channel:' + err);
+	});
+
+	motion.open().then(function (ch) {
+		console.log('channel open');
+	}).catch(function (err) {
+		console.log('failed to open the channel:' + err);
+	});
+
 }
 
 function convertPayload(request) {
@@ -330,6 +433,7 @@ function updateInputStatus(inputs) {
 
 			payload["temperature"] = temperatureValue;
 			payload["humidity"] = humidityValue;
+			payload["light"] = lightValue;
 
 			updateInputStatus(payload);
 		}, config.interval);

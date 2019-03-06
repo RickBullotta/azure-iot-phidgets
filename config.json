@@ -3,5 +3,6 @@
   "phidgetsHostName" : "localhost",
   "phidgetsPort" : 5661,
   "phidgetsPassword" : "",
-  "displaySensorValues" : false
+  "displaySensorValues" : false,
+  "motionNotificationDeadband" : 60000
 }
