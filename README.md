@@ -31,4 +31,10 @@ You can also specify the interval in milliseconds to control how frequently moti
 
 # Features
 
-This connector allows you to write to the local LCD display with a device method/command.  You can specify which line # and what text to display.  This connector will also send temperature and humidity telemetry at the user specified interval.
+This connector allows you to write to the local LCD display with a device method/command.  You can specify which line # and what text to display.  
+
+It will also send temperature, humidity, and ambient light telemetry at the user specified interval.
+
+Lastly, it will fire a motion detection event.  
+
+This is a very specific example, but Phidgets are very flexible and have lots of devices and sensors that can be similarly connected and integrated.
