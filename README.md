@@ -25,6 +25,10 @@ In this same file, you specify the interval in milliseconds to specify how frequ
 
   "interval": 60000
 
+You can also specify the interval in milliseconds to control how frequently motion events will be sent to Azure IoT. This implies that events will be sent no more frequently than "X" milliseconds (to avoid noisy signals)
+
+  "motionNotificationDeadband": 60000
+
 # Features
 
 This connector allows you to write to the local LCD display with a device method/command.  You can specify which line # and what text to display.  This connector will also send temperature and humidity telemetry at the user specified interval.
