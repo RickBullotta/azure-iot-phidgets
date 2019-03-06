@@ -1,4 +1,5 @@
 {
+  "interval": 30000,
   "phidgetsHostName" : "localhost",
   "phidgetsPort" : 5661,
   "phidgetsPassword" : "",

@@ -332,7 +332,7 @@ function updateInputStatus(inputs) {
 			payload["humidity"] = humidityValue;
 
 			updateInputStatus(payload);
-		}, 10000);
+		}, config.interval);
 
 	});
 })(process.argv[2]);
