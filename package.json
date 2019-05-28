@@ -6,8 +6,8 @@
   "license": "ISC",
   "private": true,
   "dependencies": {
-    "azure-iot-device": "^1.9.5",
-    "azure-iot-device-mqtt": "^1.9.5",
+    "azure-iot-device": "^1.9.9",
+    "azure-iot-device-mqtt": "^1.9.9",
     "phidget22": "^2.0.11",
     "prompt": "^1.0.0"
   }
