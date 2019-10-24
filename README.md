@@ -8,26 +8,34 @@ author: rickb
 
 This utilizes the Azure IoT Node.js SDK to connect to the a Phidgets 8/8/8 device with display along with a temperature/humidity sensor.  Note that this connector could easily be adapted to work with virtually any Phidgets device(s).  This code is provided as an example of how this can be achieved.
 
-# How To Run This Device Connector 
-
-Launch index.js with a single parameter, which is the connection string generated from IoT Hub or IoT Central.  Note that when using IoT Central, you'll need to utilize the dps_cstr utility to generate this connection string.
-
 # How To Configure This Device Connector
 
-In the config.json file, you'll need to provide the IP address, port, and password for your Phidgets Web Server (installed as part of the Phidgets SDK). Refer to the Phidgets documentation at https://www.phidgets.com/docs/Phidget_Network_Server for more info.  You can also set a configuration property to automatically display the temperature and humidity on the local LCD display.
+In a connect.json file, you'll need to provide the idScope, deviceId, and connection key that are displayed when you select "Connect" from the device view inside of IoT Central
+
+{
+    "idScope" : "0ne00000000",
+    "deviceId" : "MyPhidget",
+    "symmetricKey" : "z11uz4E35gO0Z9uI0PYcVm/twUyAm/iJovuMk8A2xpo=",
+}
+
+In the connect.json file, you'll also need to provide the IP address, port, and password for your Phidgets Web Server (installed as part of the Phidgets SDK). Refer to the Phidgets documentation at https://www.phidgets.com/docs/Phidget_Network_Server for more info.  
 
   "phidgetsHostName" : "localhost",
   "phidgetsPort" : 5661,
-  "phidgetsPassword" : "",
+  "phidgetsPassword" : ""
+
+In the config.json, you specify the interval in milliseconds to specify how frequently telemetry values will be sent to Azure IoT.  You can also set a configuration property to automatically display the temperature and humidity on the local LCD display.
+
+  "interval": 60000,
   "displaySensorValues" : false
-
-In this same file, you specify the interval in milliseconds to specify how frequently telemetry values will be sent to Azure IoT.
-
-  "interval": 60000
 
 You can also specify the interval in milliseconds to control how frequently motion events will be sent to Azure IoT. This implies that events will be sent no more frequently than "X" milliseconds (to avoid noisy signals)
 
   "motionNotificationDeadband": 60000
+
+# How To Run This Device Connector 
+
+Launch index.js to execute this connector.
 
 # Features
 
