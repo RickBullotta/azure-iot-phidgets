@@ -5,22 +5,26 @@
 
 const phidget22 = require('phidget22');
 
-const fs = require('fs');
-const path = require('path');
-
 const Client = require('azure-iot-device').Client;
-const ConnectionString = require('azure-iot-device').ConnectionString;
 const Message = require('azure-iot-device').Message;
-const Protocol = require('azure-iot-device-mqtt').Mqtt;
+
+// DPS and connection stuff
+
+const iotHubTransport = require('azure-iot-device-mqtt').Mqtt;
+
+var ProvisioningTransport = require('azure-iot-provisioning-device-mqtt').Mqtt;
+var SymmetricKeySecurityClient = require('azure-iot-security-symmetric-key').SymmetricKeySecurityClient;
+var ProvisioningDeviceClient = require('azure-iot-provisioning-device').ProvisioningDeviceClient;
+
+var provisioningHost = 'global.azure-devices-provisioning.net';
 
 const DEFAULT_SERVER_PORT = 5661;
 const DEFAULT_HOST_NAME = "localhost";
 const DEFAULT_PASSWORD = "";
 
-var messageId = 0;
-var deviceId;
 var client;
 var config;
+var connect;
 
 var sendingMessage = true;
 
@@ -337,37 +341,8 @@ function onReceiveMessage(msg) {
 	});
 }
 
-function initClient(connectionStringParam, credentialPath) {
-	var connectionString = ConnectionString.parse(connectionStringParam);
-	deviceId = connectionString.DeviceId;
-
-	// fromConnectionString must specify a transport constructor, coming from any transport package.
-	client = Client.fromConnectionString(connectionStringParam, Protocol);
-
-	// Configure the client to use X509 authentication if required by the connection string.
-	if (connectionString.x509) {
-		// Read X.509 certificate and private key.
-		// These files should be in the current folder and use the following naming convention:
-		// [device name]-cert.pem and [device name]-key.pem, example: myraspberrypi-cert.pem
-		var connectionOptions = {
-			cert: fs.readFileSync(path.join(credentialPath, deviceId + '-cert.pem')).toString(),
-			key: fs.readFileSync(path.join(credentialPath, deviceId + '-key.pem')).toString()
-		};
-
-		client.setOptions(connectionOptions);
-
-		console.debug('[Device] Using X.509 client certificate authentication');
-	}
-	return client;
-}
-
 function updateInputStatus(inputs) {
 	if (!sendingMessage) { return; }
-  
-	var content = {
-	  messageId: ++messageId,
-	  deviceId: deviceId
-	};
   
 	var rawMessage = JSON.stringify(inputs);
   
@@ -392,51 +367,102 @@ function updateInputStatus(inputs) {
 	});
 }
   
-  
-(function (connectionString) {
+function initBindings() {
+	// set C2D and device method callback
 
-	// create a client
-	// read out the connectionString from process environment
-	connectionString = connectionString || process.env['AzureIoTHubDeviceConnectionString'];
-	client = initClient(connectionString, config);
+	client.onDeviceMethod('start', onStart);
+	client.onDeviceMethod('stop', onStop);
 
-	client.open((err) => {
-		if (err) {
-			console.error('[IoT hub Client] Connect error: ' + err.message);
-			return;
-		}
-		else {
-			console.log('[IoT hub Client] Connected Successfully');
-		}
+	client.on('message', onReceiveMessage);
 
-		// set C2D and device method callback
-		client.onDeviceMethod('start', onStart);
-		client.onDeviceMethod('stop', onStop);
-
-		client.onDeviceMethod('WriteLCD', onWriteLCD);
-
-		client.on('message', onReceiveMessage);
-
-		try {
-			config = require('./config.json');
-		}
-		catch (err) {
-			config = {};
-			console.error('Failed to load config.json: ' + err.message);
-		}
+	// Initialize method callback
 	
+	client.onDeviceMethod('WriteLCD', onWriteLCD);
 
-		connectToPhidgetsServer(config.phidgetsHostName,config.phidgetsPort,config.phidgetsPassword);
+}
 
-		setInterval(() => {
-			var payload = {};
+function initLogic() {
+	connectToPhidgetsServer(connect.phidgetsHostName,connect.phidgetsPort,connect.phidgetsPassword);
 
-			payload["temperature"] = temperatureValue;
-			payload["humidity"] = humidityValue;
-			payload["light"] = lightValue;
+	setInterval(() => {
+		var payload = {};
 
-			updateInputStatus(payload);
-		}, config.interval);
+		payload["temperature"] = temperatureValue;
+		payload["humidity"] = humidityValue;
+		payload["light"] = lightValue;
 
-	});
-})(process.argv[2]);
+		updateInputStatus(payload);
+	}, config.interval);
+}
+
+function initDevice() {
+
+}
+
+function initClient() {
+
+	// Start the device (connect it to Azure IoT Central).
+	try {
+
+		var provisioningSecurityClient = new SymmetricKeySecurityClient(connect.deviceId, connect.symmetricKey);
+		var provisioningClient = ProvisioningDeviceClient.create(provisioningHost, connect.idScope, new ProvisioningTransport(), provisioningSecurityClient);
+
+		provisioningClient.register((err, result) => {
+			if (err) {
+				console.log('error registering device: ' + err);
+			} else {
+				console.log('registration succeeded');
+				console.log('assigned hub=' + result.assignedHub);
+				console.log('deviceId=' + result.deviceId);
+
+				var connectionString = 'HostName=' + result.assignedHub + ';DeviceId=' + result.deviceId + ';SharedAccessKey=' + connect.symmetricKey;
+				client = Client.fromConnectionString(connectionString, iotHubTransport);
+			
+				client.open((err) => {
+					if (err) {
+						console.error('[IoT hub Client] Connect error: ' + err.message);
+						return;
+					}
+					else {
+						console.log('[IoT hub Client] Connected Successfully');
+					}
+			
+					initBindings();
+
+					initLogic();
+				});
+			}
+		});
+	}
+	catch(err) {
+		console.log(err);
+	}
+}
+
+// Read in configuration from config.json
+
+try {
+	config = require('./config.json');
+} catch (err) {
+	config = {};
+	console.error('Failed to load config.json: ' + err.message);
+	return;
+}
+
+// Read in connection details from connect.json
+
+try {
+	connect = require('./connect.json');
+} catch (err) {
+	connect = {};
+	console.error('Failed to load connect.json: ' + err.message);
+	return;
+}
+
+// Perform any device initialization
+
+initDevice();
+
+// Initialize Azure IoT Client
+
+initClient();

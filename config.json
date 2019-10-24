@@ -1,8 +1,13 @@
 {
   "interval": 30000,
-  "phidgetsHostName" : "localhost",
-  "phidgetsPort" : 5661,
-  "phidgetsPassword" : "",
   "displaySensorValues" : false,
-  "motionNotificationDeadband" : 60000
+  "motionNotificationDeadband" : 60000,
+  "infoConfigurationSync" : false,
+  "debugConfigurationSync" : false,
+  "infoMethods" : true,
+  "debugMethods" : false,
+  "infoOutboundMessages" : false,
+  "debugOutboundMessages" : false,
+  "infoInboundMessages" : false,
+  "debugInboundMessages" : false
 }
